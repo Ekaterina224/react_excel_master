@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { forwardRef } from "react";
+import $ from "jquery";
 import MaterialTable from 'material-table';
 import AddBox from "@material-ui/icons/AddBox";
 import ArrowDownward from "@material-ui/icons/ArrowDownward";
@@ -29,8 +30,8 @@ class MaterialTableDemo extends Component {
       modal_open: false,
       curIndex: -1,
       selectedItem: [],
-      teamSorting: false,
-      collapseState: 'All Expand'
+      collapseState: 'All Expand',
+      teamList: []//[{ name: "DC Supply", status: true }, { name: "Hospital Supply", status: true }, { name: "Hospital Procurement Directors", status: true }]
     }
     this.handleClose = this.handleClose.bind(this);
     this.handleOpen = this.handleOpen.bind(this);
@@ -46,11 +47,17 @@ class MaterialTableDemo extends Component {
     this.setOpen(false);
   };
 
-  handleSorting = () => {
-    if (this.state.teamSorting === true)
-      this.setState({ teamSorting: false });
+  handleSorting = async event => {
+    event.preventDefault();
+    event.persist();
+    var id = event.target.value;
+    var teamListBuf = this.state.teamList;
+
+    if (teamListBuf[id].status === true)
+      teamListBuf[id].status = false;
     else
-      this.setState({ teamSorting: true });
+      teamListBuf[id].status = true;
+    this.setState({ teamList: teamListBuf })
   }
 
   handleOpen = (e) => {
@@ -61,6 +68,24 @@ class MaterialTableDemo extends Component {
     }
     this.setState({ selectedItem: this.state.excelRows[index] });
   };
+
+  componentDidMount() {
+
+    var modal = document.getElementById("myModal");
+    var btn = document.getElementById("btn_close");
+    var span = document.getElementsByClassName("close")[0];
+    btn.onclick = function () {
+      modal.style.display = "none";
+    };
+    span.onclick = function () {
+      modal.style.display = "none";
+    }
+    window.onclick = function (event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  }
 
   render() {
     const tableIcons = {
@@ -92,8 +117,35 @@ class MaterialTableDemo extends Component {
     };
 
     var proList = [];
-    //this.productlist.shift();
+    var data = []
+    var data_index = 1
+    var sortList = [];
+    var teamListBuf = this.state.teamList;
+
+    function checkTeam(value) {
+      if (teamListBuf === [])
+        return 0;
+      for (var i of teamListBuf)
+        if (i.name === value && i.status === true)
+          return 1;
+      return 0;
+    }
+
+    function searchTeam(value) {
+      if (teamListBuf === [])
+        return 0;
+      for (var i of teamListBuf)
+        if (i.name === value)
+          return 1;
+      return 0;
+    }
+
     for (var i = 1; i < this.state.excelRows.length - 1; i++) {
+      if (searchTeam(this.state.excelRows[i][5]) === 0) {
+        var teamListBuf = this.state.teamList;
+        teamListBuf.push({ name: this.state.excelRows[i][5], status: true });
+        this.setState({ teamList: teamListBuf });
+      }
       proList.push({
         "no": i,
         "id": -1,
@@ -113,74 +165,49 @@ class MaterialTableDemo extends Component {
       var sort_list = {};
       for (var item of subList) {
         if (item[sub_key] in sort_list) {
-          sort_list[item[sub_key]].push(item);
+          if (checkTeam(item.val6) === 1)
+            sort_list[item[sub_key]].push(item);
         }
-        else {
+        else
           sort_list[item[sub_key]] = [item];
-        }
       }
       return (sort_list);
     }
-    var data = []
-    var data_index = 1
-    var sortList = [];
-    if (this.state.teamSorting === true) {
-      var result = proList.reduce(function (r, a) {
-        r[a.val6] = r[a.val6] || [];
-        r[a.val6].push(a);
-        return r;
-      }, Object.create(null));
-      for (var key of Object.keys(result)) {
-        sortList = sortSubList(result[key], '1')
-        for (var item2 in sortList) {
-          var id2 = data_index;
-          data.push({ 'id': data_index++, val1: item2, val2: "", val3: "", val4: "", btn: "", val6: sortList[item2][0].val6, no: sortList[item2][0].no })
-          sortList[item2] = sortSubList(sortList[item2], '2');
-          for (var item3 in sortList[item2]) {
-            var id3 = data_index
-            data.push({ 'id': data_index++, val2: item3, val1: "", val3: "", val4: "", btn: "", parentId: id2, val6: sortList[item2][item3][0].val6, no: sortList[item2][item3][0].no })
-            sortList[item2][item3] = sortSubList(sortList[item2][item3], '3');
-            for (var item4 in sortList[item2][item3]) {
-              var id4 = data_index
-              data.push({ 'id': data_index++, val3: item4, val1: "", val2: "", val4: "", btn: "", parentId: id3, val6: sortList[item2][item3][item4][0].val6, no: sortList[item2][item3][item4][0].no })
-              sortList[item2][item3][item4] = sortSubList(sortList[item2][item3][item4], '4');
-              for (var item5 in sortList[item2][item3][item4]) {
-                data.push({ 'id': data_index++, val4: item5, val2: "", val3: "", val1: "", btn: "View", parentId: id4, val6: sortList[item2][item3][item4][item5][0].val6, no: sortList[item2][item3][item4][item5][0].no })
-              }
-            }
-          }
-        }
-      }
 
-    }
-    else {
-      sortList = sortSubList(proList, '1')
-      for (var item2 in sortList) {
-        var id2 = data_index;
-        data.push({ 'id': data_index++, val1: item2, val2: "", val3: "", val4: "", btn: "", val6: sortList[item2][0].val6, no: sortList[item2][0].no })
-        sortList[item2] = sortSubList(sortList[item2], '2');
-        for (var item3 in sortList[item2]) {
-          var id3 = data_index
-          data.push({ 'id': data_index++, val2: item3, val1: "", val3: "", val4: "", btn: "", parentId: id2, val6: sortList[item2][item3][0].val6, no: sortList[item2][item3][0].no })
-          sortList[item2][item3] = sortSubList(sortList[item2][item3], '3');
-          for (var item4 in sortList[item2][item3]) {
-            var id4 = data_index
-            data.push({ 'id': data_index++, val3: item4, val1: "", val2: "", val4: "", btn: "", parentId: id3, val6: sortList[item2][item3][item4][0].val6, no: sortList[item2][item3][item4][0].no })
-            sortList[item2][item3][item4] = sortSubList(sortList[item2][item3][item4], '4');
-            for (var item5 in sortList[item2][item3][item4]) {
-              data.push({ 'id': data_index++, val4: item5, val2: "", val3: "", val1: "", btn: "View", parentId: id4, val6: sortList[item2][item3][item4][item5][0].val6, no: sortList[item2][item3][item4][item5][0].no })
-            }
+    // var result = proList.reduce(function (r, a) {
+    //   r[a.val6] = r[a.val6] || [];
+    //   if (checkTeam(a.val6) === 1)
+    //     r[a.val6].push(a);
+    //   return r;
+    // }, Object.create(null));
+    var sortList = sortSubList(proList, '1')
+    for (var item2 in sortList) {
+      var id2 = data_index;
+      data.push({ 'id': data_index++, val1: item2, val2: "", val3: "", val4: "", btn: "", val6: "", no: sortList[item2][0].no })
+      sortList[item2] = sortSubList(sortList[item2], '2');
+      for (var item3 in sortList[item2]) {
+        var id3 = data_index
+        data.push({ 'id': data_index++, val2: item3, val1: "", val3: "", val4: "", btn: "", parentId: id2, val6: "", no: sortList[item2][item3][0].no })
+        sortList[item2][item3] = sortSubList(sortList[item2][item3], '3');
+        for (var item4 in sortList[item2][item3]) {
+          var id4 = data_index
+          data.push({ 'id': data_index++, val3: item4, val1: "", val2: "", val4: "", btn: "", parentId: id3, val6: "", no: sortList[item2][item3][item4][0].no })
+          sortList[item2][item3][item4] = sortSubList(sortList[item2][item3][item4], '4');
+          for (var item5 in sortList[item2][item3][item4]) {
+            data.push({ 'id': data_index++, val4: item5, val2: "", val3: "", val1: "", btn: "View", parentId: id4, val6: sortList[item2][item3][item4][item5][0].val6, no: sortList[item2][item3][item4][item5][0].no })
           }
         }
       }
     }
-    console.log(sortList);
+
     return (
       <div style={{ maxWidth: "90%", margin: "5vh auto", }} >
-        <FormControlLabel
-          control={<Checkbox checked={this.state.teamSorting} onChange={this.handleSorting} name="team sorting" />}
-          label="Team Sorting"
-        />
+        {this.state.teamList.map((object, i) =>
+          <FormControlLabel
+            control={<Checkbox checked={object.status} onChange={this.handleSorting} name={object.name} value={i} />}
+            label={object.name}
+          />
+        )}
         <MaterialTable
           detailPanel={[
             {
@@ -224,14 +251,44 @@ class MaterialTableDemo extends Component {
             {
               title: "Action",
               render: (rowData) =>
-                rowData && (
-                  <Button data-index={rowData.no} color="secondary" className="btn_view" >{rowData.btn}</Button>
+                rowData && rowData.btn !== "" && (
+                  <button className="btn_view custom_btn">{rowData.btn}</button>
                 )
             }
           ]}
           data={data}
-          onRowClick={(event, rowData, togglePanel) => rowData.btn === "View" && togglePanel()}
+          onRowClick={(event, rowData, togglePanel) => rowData.btn === "View" && (
+            document.getElementById("myModal").style.display = "block",
+            document.getElementById("m_val1").innerHTML = this.state.excelRows[rowData.no][0],
+            document.getElementById("m_val2").innerHTML = this.state.excelRows[rowData.no][1],
+            document.getElementById("m_val3").innerHTML = this.state.excelRows[rowData.no][2],
+            document.getElementById("m_val4").innerHTML = this.state.excelRows[rowData.no][3],
+            document.getElementById("m_val5").innerHTML = this.state.excelRows[rowData.no][4],
+            document.getElementById("m_val6").innerHTML = this.state.excelRows[rowData.no][5],
+            document.getElementById("m_val7").innerHTML = this.state.excelRows[rowData.no][6],
+            document.getElementById("m_val8").innerHTML = this.state.excelRows[rowData.no][7]
+          )}
         />
+        <div id="myModal" className="modal">
+          <div className="modal-content">
+            <span className="close">&times;</span>
+            <table className='md_table'>
+              <tbody>
+                <tr><td className='mdb_td_w3'>Phase</td><td className='mdb_td_w7' id="m_val1"></td></tr>
+                <tr><td className='mdb_td_w3'>Service</td><td className='mdb_td_w7' id="m_val2"></td></tr>
+                <tr><td className='mdb_td_w3'>Activity</td><td className='mdb_td_w7' id="m_val3"></td></tr>
+                <tr><td className='mdb_td_w3'>Task</td><td className='mdb_td_w7' id="m_val4"></td></tr>
+                <tr><td className='mdb_td_w3'>Description</td><td className='mdb_td_w7' id="m_val5"></td></tr>
+                <tr><td className='mdb_td_w3'>Team</td><td className='mdb_td_w7' id="m_val6"></td></tr>
+                <tr><td className='mdb_td_w3'>KPI</td><td className='mdb_td_w7' id="m_val7"></td></tr>
+                <tr><td className='mdb_td_w3'>Artefact(s)</td><td className='mdb_td_w7' id="m_val8"></td></tr>
+              </tbody>
+            </table>
+            <div align="center">
+              <button id="btn_close" className="custom_btn">OK</button>
+            </div>
+          </div>
+        </div>
       </div >
     )
   };
