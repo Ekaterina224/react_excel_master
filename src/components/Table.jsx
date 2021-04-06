@@ -31,6 +31,13 @@ class MaterialTableDemo extends Component {
       curIndex: -1,
       selectedItem: [],
       collapseState: 'All Expand',
+      constPathColors : {
+        1: 'rgb(255 0 0 / 60%)',
+        2: 'rgb(255 211 51 / 63%)',
+        3: '#FFFF66',
+        4: '#FFFFFF',
+        5: '#FFFFCC'
+      },
       teamList: []//[{ name: "DC Supply", status: true }, { name: "Hospital Supply", status: true }, { name: "Hospital Procurement Directors", status: true }]
     }
     this.handleClose = this.handleClose.bind(this);
@@ -68,6 +75,12 @@ class MaterialTableDemo extends Component {
     }
     this.setState({ selectedItem: this.state.excelRows[index] });
   };
+
+  allCollapseFunc = (e) =>{
+    var arrBuf = this.state.excelRows;
+    this.setState({ excelRows: [] });
+    this.setState({ excelRows: arrBuf });
+  }
 
   componentDidMount() {
 
@@ -116,10 +129,10 @@ class MaterialTableDemo extends Component {
       ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
     };
 
-    var proList = [];
+    var proList = []
     var data = []
     var data_index = 1
-    var sortList = [];
+    var sortList = []
     var teamListBuf = this.state.teamList;
 
     function checkTeam(value) {
@@ -174,12 +187,6 @@ class MaterialTableDemo extends Component {
       return (sort_list);
     }
 
-    // var result = proList.reduce(function (r, a) {
-    //   r[a.val6] = r[a.val6] || [];
-    //   if (checkTeam(a.val6) === 1)
-    //     r[a.val6].push(a);
-    //   return r;
-    // }, Object.create(null));
     var sortList = sortSubList(proList, '1')
     for (var item2 in sortList) {
       var id2 = data_index;
@@ -208,6 +215,7 @@ class MaterialTableDemo extends Component {
             label={object.name}
           />
         )}
+        <Button onClick={this.allCollapseFunc} variant="contained" style={{float:'right'}} color="secondary">All Collapse</Button>
         <MaterialTable
           detailPanel={[
             {
@@ -239,7 +247,13 @@ class MaterialTableDemo extends Component {
           parentChildData={(row, rows) => rows.find(a => a.id === row.parentId)}
           options={{
             selection: false,
-
+            rowStyle: rowData => {
+              if(rowData.tableData.isTreeExpanded === false && rowData.tableData.path.length === 1) {
+                return {};
+              }
+              const rowBackgroundColor =this.state.constPathColors[rowData.tableData.path.length];
+              return {backgroundColor: rowBackgroundColor};
+            }
           }}
 
           columns={[
@@ -257,8 +271,9 @@ class MaterialTableDemo extends Component {
             }
           ]}
           data={data}
-          onRowClick={(event, rowData, togglePanel) => rowData.btn === "View" && (
-            document.getElementById("myModal").style.display = "block",
+          onRowClick={(event, rowData, togglePanel) =>  (
+            rowData.btn !== "View" && event.target.parentElement.firstElementChild.firstElementChild.click(),
+            rowData.btn === "View" && (document.getElementById("myModal").style.display = "block",
             document.getElementById("m_val1").innerHTML = this.state.excelRows[rowData.no][0],
             document.getElementById("m_val2").innerHTML = this.state.excelRows[rowData.no][1],
             document.getElementById("m_val3").innerHTML = this.state.excelRows[rowData.no][2],
@@ -266,7 +281,7 @@ class MaterialTableDemo extends Component {
             document.getElementById("m_val5").innerHTML = this.state.excelRows[rowData.no][4],
             document.getElementById("m_val6").innerHTML = this.state.excelRows[rowData.no][5],
             document.getElementById("m_val7").innerHTML = this.state.excelRows[rowData.no][6],
-            document.getElementById("m_val8").innerHTML = this.state.excelRows[rowData.no][7]
+            document.getElementById("m_val8").innerHTML = this.state.excelRows[rowData.no][7])
           )}
         />
         <div id="myModal" className="modal">
